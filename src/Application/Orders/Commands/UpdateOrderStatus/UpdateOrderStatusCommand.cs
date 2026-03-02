@@ -31,6 +31,11 @@ public class UpdateOrderStatusCommandHandler : IRequestHandler<UpdateOrderStatus
         {
             entity.CompletedAt = DateTimeOffset.UtcNow;
         }
+        
+        if (request.Status == OrderStatus.Collected)
+        {
+            entity.CollectedAt = DateTimeOffset.UtcNow;
+        }
 
         await _context.SaveChangesAsync(cancellationToken);
     }

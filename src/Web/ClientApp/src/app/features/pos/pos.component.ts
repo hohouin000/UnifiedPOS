@@ -114,6 +114,14 @@ interface CartItemDisplay extends CartItem {
             </div>
             
             <div class="payment-section" *ngIf="!showConfirmation">
+              <div class="form-group" style="margin-bottom: 12px;">
+                <label class="form-label">Bill Number <small class="text-muted">(optional)</small></label>
+                <input type="text" class="form-control" [(ngModel)]="billNumber" placeholder="e.g. INV-001">
+              </div>
+              <div class="form-group" style="margin-bottom: 12px;">
+                <label class="form-label">Remark <small class="text-muted">(optional)</small></label>
+                <input type="text" class="form-control" [(ngModel)]="orderRemark" placeholder="Any notes about this order">
+              </div>
               <div class="form-group">
                 <label class="form-label">Payment Amount</label>
                 <input type="number" class="form-control" [(ngModel)]="paymentAmount" [placeholder]="cartTotal.toFixed(2)">
@@ -323,6 +331,8 @@ export class PosComponent implements OnInit {
   orderResult: CreateOrderResult | null = null;
   isMobileCartOpen = false;
   isPayLater = false;
+  billNumber = '';
+  orderRemark = '';
 
   // Customer selection
   customerSearch = '';
@@ -429,7 +439,9 @@ export class PosComponent implements OnInit {
       customerId: this.selectedCustomer?.id,
       customerName: this.selectedCustomer?.name,
       customerPhone: this.selectedCustomer?.phone,
-      items: this.cart
+      items: this.cart,
+      billNumber: this.billNumber || undefined,
+      remark: this.orderRemark || undefined
     };
 
     if (!this.isPayLater) {
@@ -453,6 +465,8 @@ export class PosComponent implements OnInit {
     this.selectedCustomer = null;
     this.showConfirmation = false;
     this.isPayLater = false;
+    this.billNumber = '';
+    this.orderRemark = '';
   }
 
   selectPaymentMethod(method: PaymentMethod) {

@@ -20,9 +20,17 @@ public class Order : BaseAuditableEntity
     
     public OrderStatus OrderStatus { get; set; } = OrderStatus.Pending;
     
+    public bool IsDeleted { get; set; } = false;
+    
     public string? Notes { get; set; }
     
+    public string? BillNumber { get; set; }
+    
+    public string? Remark { get; set; }
+    
     public DateTimeOffset? CompletedAt { get; set; }
+    
+    public DateTimeOffset? CollectedAt { get; set; }
     
     public Customer? Customer { get; set; }
     

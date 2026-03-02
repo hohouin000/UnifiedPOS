@@ -5,5 +5,6 @@ public enum OrderStatus
     Pending,
     Processing,
     Ready,
-    Completed
+    Completed,
+    Collected
 }

@@ -12,7 +12,10 @@ public record OrderListDto
     public decimal PaidAmount { get; init; }
     public PaymentStatus PaymentStatus { get; init; }
     public OrderStatus OrderStatus { get; init; }
+    public string? BillNumber { get; init; }
+    public string? Remark { get; init; }
     public DateTimeOffset Created { get; init; }
+    public DateTimeOffset? CollectedAt { get; init; }
 }
 
 public record GetOrdersQuery : IRequest<List<OrderListDto>>
@@ -34,7 +37,7 @@ public class GetOrdersQueryHandler : IRequestHandler<GetOrdersQuery, List<OrderL
 
     public async Task<List<OrderListDto>> Handle(GetOrdersQuery request, CancellationToken cancellationToken)
     {
-        var query = _context.Orders.AsNoTracking();
+        var query = _context.Orders.AsNoTracking().Where(o => !o.IsDeleted);
 
         if (request.Status.HasValue)
         {
@@ -45,7 +48,9 @@ public class GetOrdersQueryHandler : IRequestHandler<GetOrdersQuery, List<OrderL
         {
             query = query.Where(o => 
                 o.TicketNumber.Contains(request.SearchTerm) ||
-                (o.CustomerName != null && o.CustomerName.Contains(request.SearchTerm)));
+                (o.CustomerName != null && o.CustomerName.Contains(request.SearchTerm)) ||
+                (o.BillNumber != null && o.BillNumber.Contains(request.SearchTerm)) ||
+                (o.Remark != null && o.Remark.Contains(request.SearchTerm)));
         }
 
         if (request.FromDate.HasValue)
@@ -70,7 +75,10 @@ public class GetOrdersQueryHandler : IRequestHandler<GetOrdersQuery, List<OrderL
                 PaidAmount = o.PaidAmount,
                 PaymentStatus = o.PaymentStatus,
                 OrderStatus = o.OrderStatus,
-                Created = o.Created
+                BillNumber = o.BillNumber,
+                Remark = o.Remark,
+                Created = o.Created,
+                CollectedAt = o.CollectedAt
             })
             .Take(100)
             .ToListAsync(cancellationToken);

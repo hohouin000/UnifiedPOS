@@ -243,6 +243,12 @@ namespace UnifiedPOS.Infrastructure.Data.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("INTEGER");
 
+                    b.Property<string>("BillNumber")
+                        .HasColumnType("TEXT");
+
+                    b.Property<long?>("CollectedAt")
+                        .HasColumnType("INTEGER");
+
                     b.Property<long?>("CompletedAt")
                         .HasColumnType("INTEGER");
 
@@ -263,6 +269,9 @@ namespace UnifiedPOS.Infrastructure.Data.Migrations
                         .HasMaxLength(20)
                         .HasColumnType("TEXT");
 
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("INTEGER");
+
                     b.Property<long>("LastModified")
                         .HasColumnType("INTEGER");
 
@@ -282,6 +291,9 @@ namespace UnifiedPOS.Infrastructure.Data.Migrations
 
                     b.Property<int>("PaymentStatus")
                         .HasColumnType("INTEGER");
+
+                    b.Property<string>("Remark")
+                        .HasColumnType("TEXT");
 
                     b.Property<string>("TicketNumber")
                         .IsRequired()

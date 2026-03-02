@@ -52,6 +52,12 @@ import { PrintService } from '../../core/services/print.service';
             (click)="filterByStatus(OrderStatus.Completed)">
             Completed
           </button>
+          <button 
+            class="filter-btn collected" 
+            [class.active]="statusFilter === OrderStatus.Collected"
+            (click)="filterByStatus(OrderStatus.Collected)">
+            Collected
+          </button>
         </div>
         
         <!-- Orders Table -->
@@ -66,7 +72,10 @@ import { PrintService } from '../../core/services/print.service';
                   <th>Paid</th>
                   <th>Payment</th>
                   <th>Status</th>
+                  <th>Bill #</th>
+                  <th>Remark</th>
                   <th>Date</th>
+                  <th>Collected</th>
                   <th>Actions</th>
                 </tr>
               </thead>
@@ -92,24 +101,38 @@ import { PrintService } from '../../core/services/print.service';
                       {{ getStatusLabel(order.orderStatus) }}
                     </span>
                   </td>
+                  <td>
+                    <span *ngIf="order.billNumber" class="text-sm">{{ order.billNumber }}</span>
+                    <span *ngIf="!order.billNumber" class="text-muted text-sm">—</span>
+                  </td>
+                  <td>
+                    <span *ngIf="order.remark" class="text-sm">{{ order.remark }}</span>
+                    <span *ngIf="!order.remark" class="text-muted text-sm">—</span>
+                  </td>
                   <td>{{ formatDate(order.created) }}</td>
+                  <td>
+                    <span *ngIf="order.collectedAt" class="text-sm">{{ formatDate(order.collectedAt) }}</span>
+                    <span *ngIf="!order.collectedAt" class="text-muted text-sm">—</span>
+                  </td>
                   <td>
                     <div class="action-buttons">
                       <button class="btn btn-sm btn-outline" (click)="viewOrder(order)">View</button>
                       <select 
                         class="form-control status-select" 
                         [ngModel]="order.orderStatus"
-                        (ngModelChange)="updateStatus(order, $event)">
+                        (ngModelChange)="onStatusChange(order, $event)">
                         <option [ngValue]="OrderStatus.Pending">Pending</option>
                         <option [ngValue]="OrderStatus.Processing">Processing</option>
                         <option [ngValue]="OrderStatus.Ready">Ready</option>
                         <option [ngValue]="OrderStatus.Completed">Completed</option>
+                        <option [ngValue]="OrderStatus.Collected">Collected</option>
                       </select>
+                      <button class="btn btn-sm btn-danger" (click)="promptDelete(order)" title="Delete order">❌</button>
                     </div>
                   </td>
                 </tr>
                 <tr *ngIf="orders.length === 0">
-                  <td colspan="8" class="text-center text-muted p-3">No orders found</td>
+                  <td colspan="11" class="text-center text-muted p-3">No orders found</td>
                 </tr>
               </tbody>
             </table>
@@ -238,6 +261,24 @@ import { PrintService } from '../../core/services/print.service';
               </p>
             </div>
             
+            <!-- Bill Number & Remark -->
+            <div class="detail-section">
+              <h4>Details</h4>
+              <div class="detail-edit-grid">
+                <div class="form-group">
+                  <label class="form-label">Bill Number</label>
+                  <input type="text" class="form-control" [(ngModel)]="selectedOrder.billNumber" placeholder="e.g. INV-001">
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Remark</label>
+                  <input type="text" class="form-control" [(ngModel)]="selectedOrder.remark" placeholder="Any notes">
+                </div>
+                <button class="btn btn-sm btn-outline" (click)="saveOrderDetails()" [disabled]="isSavingDetails">
+                  {{ isSavingDetails ? 'Saving...' : 'Save Details' }}
+                </button>
+              </div>
+            </div>
+            
             <!-- Status -->
             <div class="detail-section">
               <h4>Status</h4>
@@ -248,6 +289,10 @@ import { PrintService } from '../../core/services/print.service';
                 <span class="badge" [class]="getPaymentStatusClass(selectedOrder.paymentStatus)">
                   {{ getPaymentStatusLabel(selectedOrder.paymentStatus) }}
                 </span>
+              </div>
+              <div class="status-timestamps" style="margin-top: 8px; font-size: 12px; color: #64748B;">
+                <div *ngIf="selectedOrder.completedAt">✅ Completed: {{ formatDate(selectedOrder.completedAt) }}</div>
+                <div *ngIf="selectedOrder.collectedAt">📦 Collected: {{ formatDate(selectedOrder.collectedAt) }}</div>
               </div>
             </div>
           </div>
@@ -271,6 +316,29 @@ import { PrintService } from '../../core/services/print.service';
         </div>
       </div>
     </app-layout>
+
+    <!-- Password Modal -->
+    <div class="modal-overlay" *ngIf="showPasswordModal" (click)="cancelPasswordAction()">
+      <div class="modal-content" style="max-width: 400px;" (click)="$event.stopPropagation()">
+        <div class="modal-header">
+          <h3>🔒 Password Required</h3>
+          <button class="modal-close" (click)="cancelPasswordAction()">&times;</button>
+        </div>
+        <div class="modal-body">
+          <p style="margin-bottom: 16px; color: #64748B;">{{ passwordActionMessage }}</p>
+          <div class="form-group">
+            <label class="form-label">Admin Password</label>
+            <input type="password" class="form-control" [(ngModel)]="passwordInput" 
+              placeholder="Enter password" (keyup.enter)="confirmPasswordAction()">
+          </div>
+          <p *ngIf="passwordError" style="color: #EF4444; margin-top: 8px; font-size: 13px;">{{ passwordError }}</p>
+        </div>
+        <div class="modal-footer">
+          <button class="btn btn-outline" (click)="cancelPasswordAction()">Cancel</button>
+          <button class="btn btn-primary" (click)="confirmPasswordAction()">Confirm</button>
+        </div>
+      </div>
+    </div>
   `,
   styles: [`
     .page-container {
@@ -562,7 +630,16 @@ export class OrdersComponent implements OnInit {
   };
 
   isPrinting = false;
+  isSavingDetails = false;
   shopSettings: ShopSettingsDto = { shopName: '', address: '', businessWhatsApp: '' };
+
+  // Password modal
+  showPasswordModal = false;
+  passwordInput = '';
+  passwordError = '';
+  passwordActionMessage = '';
+  pendingAction: (() => void) | null = null;
+  private readonly ADMIN_PASSWORD = 'admin123';
 
   constructor(private api: ApiService, private printService: PrintService) { }
 
@@ -599,7 +676,50 @@ export class OrdersComponent implements OnInit {
 
   closeOrderDetail() {
     this.selectedOrder = null;
-    this.loadOrders(); // Refresh list to reflect any changes
+    this.loadOrders();
+  }
+
+  // Password-protected status change
+  onStatusChange(order: OrderListDto, newStatus: OrderStatus) {
+    if (order.orderStatus === OrderStatus.Collected) {
+      // Changing FROM Collected requires password
+      this.passwordActionMessage = `Changing status of order ${order.ticketNumber} from Collected. Enter admin password to proceed.`;
+      this.pendingAction = () => this.updateStatus(order, newStatus);
+      this.showPasswordModal = true;
+    } else {
+      this.updateStatus(order, newStatus);
+    }
+  }
+
+  promptDelete(order: OrderListDto) {
+    this.passwordActionMessage = `Delete order ${order.ticketNumber}? This action cannot be undone. Enter admin password to proceed.`;
+    this.pendingAction = () => {
+      this.api.deleteOrder(order.id).subscribe({
+        next: () => this.loadOrders(),
+        error: () => alert('Failed to delete order')
+      });
+    };
+    this.showPasswordModal = true;
+  }
+
+  confirmPasswordAction() {
+    if (this.passwordInput !== this.ADMIN_PASSWORD) {
+      this.passwordError = 'Incorrect password';
+      return;
+    }
+    if (this.pendingAction) {
+      this.pendingAction();
+    }
+    this.cancelPasswordAction();
+  }
+
+  cancelPasswordAction() {
+    this.showPasswordModal = false;
+    this.passwordInput = '';
+    this.passwordError = '';
+    this.passwordActionMessage = '';
+    this.pendingAction = null;
+    this.loadOrders();
   }
 
   resetPaymentForm() {
@@ -720,6 +840,7 @@ export class OrdersComponent implements OnInit {
       case OrderStatus.Processing: return 'status-processing';
       case OrderStatus.Ready: return 'status-ready';
       case OrderStatus.Completed: return 'status-completed';
+      case OrderStatus.Collected: return 'status-collected';
       default: return '';
     }
   }
@@ -730,8 +851,25 @@ export class OrdersComponent implements OnInit {
       case OrderStatus.Processing: return 'Processing';
       case OrderStatus.Ready: return 'Ready';
       case OrderStatus.Completed: return 'Completed';
+      case OrderStatus.Collected: return 'Collected';
       default: return '';
     }
+  }
+
+  saveOrderDetails() {
+    if (!this.selectedOrder) return;
+    this.isSavingDetails = true;
+    this.api.updateOrderDetails(this.selectedOrder.id, {
+      id: this.selectedOrder.id,
+      billNumber: this.selectedOrder.billNumber || undefined,
+      remark: this.selectedOrder.remark || undefined
+    }).subscribe({
+      next: () => {
+        this.isSavingDetails = false;
+        this.loadOrders();
+      },
+      error: () => { this.isSavingDetails = false; }
+    });
   }
 
   getPaymentStatusClass(status: PaymentStatus): string {

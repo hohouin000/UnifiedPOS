@@ -52,7 +52,10 @@ export interface OrderListDto {
     paidAmount: number;
     paymentStatus: PaymentStatus;
     orderStatus: OrderStatus;
+    billNumber?: string;
+    remark?: string;
     created: Date;
+    collectedAt?: Date;
 }
 
 export interface OrderDetailDto {
@@ -67,8 +70,11 @@ export interface OrderDetailDto {
     paymentStatus: PaymentStatus;
     orderStatus: OrderStatus;
     notes?: string;
+    billNumber?: string;
+    remark?: string;
     created: Date;
     completedAt?: Date;
+    collectedAt?: Date;
     items: OrderItemDetailDto[];
     payments: PaymentDetailDto[];
 }
@@ -123,6 +129,8 @@ export interface CreateOrderCommand {
     items: CartItem[];
     payment?: PaymentDto;
     notes?: string;
+    billNumber?: string;
+    remark?: string;
 }
 
 export interface CartItem {
@@ -212,7 +220,8 @@ export enum OrderStatus {
     Pending = 0,
     Processing = 1,
     Ready = 2,
-    Completed = 3
+    Completed = 3,
+    Collected = 4
 }
 
 @Injectable({
@@ -297,6 +306,14 @@ export class ApiService {
 
     addPayment(orderId: number, payment: PaymentDto): Observable<any> {
         return this.http.post(`${this.baseUrl}/orders/${orderId}/payments`, payment);
+    }
+
+    updateOrderDetails(orderId: number, details: { id: number; billNumber?: string; remark?: string }): Observable<void> {
+        return this.http.put<void>(`${this.baseUrl}/orders/${orderId}/details`, details);
+    }
+
+    deleteOrder(orderId: number): Observable<void> {
+        return this.http.delete<void>(`${this.baseUrl}/orders/${orderId}`);
     }
 
     // Dashboard

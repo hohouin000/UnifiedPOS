@@ -12,6 +12,8 @@ public record CreateOrderCommand : IRequest<CreateOrderResult>
     public List<OrderItemDto> Items { get; init; } = new();
     public PaymentDto? Payment { get; init; }
     public string? Notes { get; init; }
+    public string? BillNumber { get; init; }
+    public string? Remark { get; init; }
 }
 
 public record OrderItemDto
@@ -92,7 +94,9 @@ public class CreateOrderCommandHandler : IRequestHandler<CreateOrderCommand, Cre
             PaidAmount = 0,
             PaymentStatus = PaymentStatus.Unpaid,
             OrderStatus = OrderStatus.Pending,
-            Notes = request.Notes
+            Notes = request.Notes,
+            BillNumber = request.BillNumber,
+            Remark = request.Remark
         };
 
         // Add items

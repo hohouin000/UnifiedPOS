@@ -2,7 +2,7 @@
 ; Download Inno Setup from: https://jrsoftware.org/isdl.php
 
 #define MyAppName "UnifiedPOS"
-#define MyAppVersion "1.4.3"
+#define MyAppVersion "0.9.1-beta"
 #define MyAppPublisher "UnifiedPOS"
 #define MyAppURL "https://unifiedpos.com"
 #define MyAppExeName "UnifiedPOS.Web.exe"
@@ -102,6 +102,10 @@ begin
     Exec('netsh', 'advfirewall firewall delete rule name="UnifiedPOS"', '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
   end;
 end;
+
+
+
+
 
 
 

@@ -1,5 +1,7 @@
 using UnifiedPOS.Application.Orders.Commands.AddPayment;
 using UnifiedPOS.Application.Orders.Commands.CreateOrder;
+using UnifiedPOS.Application.Orders.Commands.DeleteOrder;
+using UnifiedPOS.Application.Orders.Commands.UpdateOrderDetails;
 using UnifiedPOS.Application.Orders.Commands.UpdateOrderStatus;
 using UnifiedPOS.Application.Orders.Queries.GetOrderById;
 using UnifiedPOS.Application.Orders.Queries.GetOrders;
@@ -15,7 +17,9 @@ public class Orders : EndpointGroupBase
         groupBuilder.MapGet(GetOrderById, "{id}").RequireAuthorization();
         groupBuilder.MapPost(CreateOrder).RequireAuthorization();
         groupBuilder.MapPut(UpdateOrderStatus, "{id}/status").RequireAuthorization();
+        groupBuilder.MapPut(UpdateOrderDetails, "{id}/details").RequireAuthorization();
         groupBuilder.MapPost(AddPayment, "{id}/payments").RequireAuthorization();
+        groupBuilder.MapDelete(DeleteOrder, "{id}").RequireAuthorization();
     }
 
     public async Task<Ok<List<OrderListDto>>> GetOrders(
@@ -48,6 +52,16 @@ public class Orders : EndpointGroupBase
         return TypedResults.NoContent();
     }
 
+    public async Task<Results<NoContent, BadRequest>> UpdateOrderDetails(
+        ISender sender, 
+        int id, 
+        UpdateOrderDetailsCommand command)
+    {
+        if (id != command.Id) return TypedResults.BadRequest();
+        await sender.Send(command);
+        return TypedResults.NoContent();
+    }
+
     public async Task<Ok<AddPaymentResult>> AddPayment(
         ISender sender, 
         int id, 
@@ -55,5 +69,11 @@ public class Orders : EndpointGroupBase
     {
         var result = await sender.Send(command with { OrderId = id });
         return TypedResults.Ok(result);
+    }
+
+    public async Task<NoContent> DeleteOrder(ISender sender, int id)
+    {
+        await sender.Send(new DeleteOrderCommand { Id = id });
+        return TypedResults.NoContent();
     }
 }

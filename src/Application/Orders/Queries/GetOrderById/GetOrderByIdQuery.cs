@@ -15,8 +15,11 @@ public record OrderDetailDto
     public PaymentStatus PaymentStatus { get; init; }
     public OrderStatus OrderStatus { get; init; }
     public string? Notes { get; init; }
+    public string? BillNumber { get; init; }
+    public string? Remark { get; init; }
     public DateTimeOffset Created { get; init; }
     public DateTimeOffset? CompletedAt { get; init; }
+    public DateTimeOffset? CollectedAt { get; init; }
     public List<OrderItemDetailDto> Items { get; init; } = new();
     public List<PaymentDetailDto> Payments { get; init; } = new();
 }
@@ -74,8 +77,11 @@ public class GetOrderByIdQueryHandler : IRequestHandler<GetOrderByIdQuery, Order
             PaymentStatus = order.PaymentStatus,
             OrderStatus = order.OrderStatus,
             Notes = order.Notes,
+            BillNumber = order.BillNumber,
+            Remark = order.Remark,
             Created = order.Created,
             CompletedAt = order.CompletedAt,
+            CollectedAt = order.CollectedAt,
             Items = order.Items.Select(i => new OrderItemDetailDto
             {
                 Id = i.Id,

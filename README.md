@@ -1,3 +1,6 @@
+<<<<<<< HEAD
+# UnifiedPOS
+=======
 ﻿# UnifiedPOS
 
 Point of Sale system for Laundry and Dry Cleaning businesses.
@@ -107,3 +110,4 @@ UnifiedPOS/
 - **Frontend:** Angular 18, TypeScript
 - **Database:** SQL Server
 - **Architecture:** Clean Architecture, CQRS with MediatR
+>>>>>>> a3e019d (Initial commit)
