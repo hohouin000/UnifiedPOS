@@ -45,6 +45,8 @@ app.MapRazorPages();
 app.MapFallbackToFile("index.html");
 
 app.UseCustomExceptionHandler();
+app.UseAuthentication();
+app.UseAuthorization();
 
 
 app.MapEndpoints();
