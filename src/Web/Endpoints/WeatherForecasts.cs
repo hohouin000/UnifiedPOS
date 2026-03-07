@@ -1,22 +1,15 @@
 ﻿using UnifiedPOS.Application.WeatherForecasts.Queries.GetWeatherForecasts;
-using Microsoft.AspNetCore.Http.HttpResults;
 
 namespace UnifiedPOS.Web.Endpoints;
 
 public class WeatherForecasts : EndpointGroupBase
 {
-    public override void Map(RouteGroupBuilder groupBuilder)
+    public override void Map(IEndpointRouteBuilder app)
     {
-        groupBuilder.RequireAuthorization();
-
-        groupBuilder.MapGet(GetWeatherForecasts);
+        app.MapGet("/api/WeatherForecasts", async (ISender sender) =>
+        {
+            var forecasts = await sender.Send(new GetWeatherForecastsQuery());
+            return Results.Ok(forecasts);
+        }).RequireAuthorization();
     }
-
-    public async Task<Ok<IEnumerable<WeatherForecast>>> GetWeatherForecasts(ISender sender)
-    {
-        var forecasts = await sender.Send(new GetWeatherForecastsQuery());
-
-        return TypedResults.Ok(forecasts);
-    }
-
 }

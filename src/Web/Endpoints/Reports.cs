@@ -1,20 +1,15 @@
 using UnifiedPOS.Application.Reports.Queries.GetSalesReport;
-using Microsoft.AspNetCore.Http.HttpResults;
 
 namespace UnifiedPOS.Web.Endpoints;
 
 public class Reports : EndpointGroupBase
 {
-    public override void Map(RouteGroupBuilder groupBuilder)
+    public override void Map(IEndpointRouteBuilder app)
     {
-        groupBuilder.MapGet("sales", GetSalesReport).RequireAuthorization();
-    }
-
-    public async Task<Ok<SalesReportDto>> GetSalesReport(
-        ISender sender,
-        [AsParameters] GetSalesReportQuery query)
-    {
-        var result = await sender.Send(query);
-        return TypedResults.Ok(result);
+        app.MapGet("/api/Reports/sales", async (ISender sender, DateTimeOffset? fromDate, DateTimeOffset? toDate) =>
+        {
+            var result = await sender.Send(new GetSalesReportQuery { FromDate = fromDate ?? DateTimeOffset.MinValue, ToDate = toDate ?? DateTimeOffset.UtcNow });
+            return Results.Ok(result);
+        }).RequireAuthorization();
     }
 }

@@ -5,75 +5,62 @@ using UnifiedPOS.Application.Orders.Commands.UpdateOrderDetails;
 using UnifiedPOS.Application.Orders.Commands.UpdateOrderStatus;
 using UnifiedPOS.Application.Orders.Queries.GetOrderById;
 using UnifiedPOS.Application.Orders.Queries.GetOrders;
-using Microsoft.AspNetCore.Http.HttpResults;
 
 namespace UnifiedPOS.Web.Endpoints;
 
 public class Orders : EndpointGroupBase
 {
-    public override void Map(RouteGroupBuilder groupBuilder)
+    public override void Map(IEndpointRouteBuilder app)
     {
-        groupBuilder.MapGet(GetOrders).RequireAuthorization();
-        groupBuilder.MapGet(GetOrderById, "{id}").RequireAuthorization();
-        groupBuilder.MapPost(CreateOrder).RequireAuthorization();
-        groupBuilder.MapPut(UpdateOrderStatus, "{id}/status").RequireAuthorization();
-        groupBuilder.MapPut(UpdateOrderDetails, "{id}/details").RequireAuthorization();
-        groupBuilder.MapPost(AddPayment, "{id}/payments").RequireAuthorization();
-        groupBuilder.MapDelete(DeleteOrder, "{id}").RequireAuthorization();
-    }
+        app.MapGet("/api/Orders", async (ISender sender, int? status, string? searchTerm, DateTime? fromDate, DateTime? toDate) =>
+        {
+            var query = new GetOrdersQuery
+            {
+                Status = status.HasValue ? (UnifiedPOS.Domain.Enums.OrderStatus)status.Value : null,
+                SearchTerm = searchTerm,
+                FromDate = fromDate,
+                ToDate = toDate
+            };
+            var result = await sender.Send(query);
+            return Results.Ok(result);
+        }).RequireAuthorization();
 
-    public async Task<Ok<List<OrderListDto>>> GetOrders(
-        ISender sender,
-        [AsParameters] GetOrdersQuery query)
-    {
-        var result = await sender.Send(query);
-        return TypedResults.Ok(result);
-    }
+        app.MapGet("/api/Orders/{id}", async (ISender sender, int id) =>
+        {
+            var result = await sender.Send(new GetOrderByIdQuery(id));
+            return Results.Ok(result);
+        }).RequireAuthorization();
 
-    public async Task<Results<Ok<OrderDetailDto>, NotFound>> GetOrderById(ISender sender, int id)
-    {
-        var result = await sender.Send(new GetOrderByIdQuery(id));
-        return TypedResults.Ok(result);
-    }
+        app.MapPost("/api/Orders", async (ISender sender, CreateOrderCommand command) =>
+        {
+            var result = await sender.Send(command);
+            return Results.Created($"/api/Orders/{result.OrderId}", result);
+        }).RequireAuthorization();
 
-    public async Task<Created<CreateOrderResult>> CreateOrder(ISender sender, CreateOrderCommand command)
-    {
-        var result = await sender.Send(command);
-        return TypedResults.Created($"/{nameof(Orders)}/{result.OrderId}", result);
-    }
+        app.MapPut("/api/Orders/{id}/status", async (ISender sender, int id, UpdateOrderStatusCommand command) =>
+        {
+            if (id != command.Id) return Results.BadRequest();
+            await sender.Send(command);
+            return Results.NoContent();
+        }).RequireAuthorization();
 
-    public async Task<Results<NoContent, BadRequest>> UpdateOrderStatus(
-        ISender sender, 
-        int id, 
-        UpdateOrderStatusCommand command)
-    {
-        if (id != command.Id) return TypedResults.BadRequest();
-        await sender.Send(command);
-        return TypedResults.NoContent();
-    }
+        app.MapPut("/api/Orders/{id}/details", async (ISender sender, int id, UpdateOrderDetailsCommand command) =>
+        {
+            if (id != command.Id) return Results.BadRequest();
+            await sender.Send(command);
+            return Results.NoContent();
+        }).RequireAuthorization();
 
-    public async Task<Results<NoContent, BadRequest>> UpdateOrderDetails(
-        ISender sender, 
-        int id, 
-        UpdateOrderDetailsCommand command)
-    {
-        if (id != command.Id) return TypedResults.BadRequest();
-        await sender.Send(command);
-        return TypedResults.NoContent();
-    }
+        app.MapPost("/api/Orders/{id}/payments", async (ISender sender, int id, AddPaymentCommand command) =>
+        {
+            var result = await sender.Send(command with { OrderId = id });
+            return Results.Ok(result);
+        }).RequireAuthorization();
 
-    public async Task<Ok<AddPaymentResult>> AddPayment(
-        ISender sender, 
-        int id, 
-        AddPaymentCommand command)
-    {
-        var result = await sender.Send(command with { OrderId = id });
-        return TypedResults.Ok(result);
-    }
-
-    public async Task<NoContent> DeleteOrder(ISender sender, int id)
-    {
-        await sender.Send(new DeleteOrderCommand { Id = id });
-        return TypedResults.NoContent();
+        app.MapDelete("/api/Orders/{id}", async (ISender sender, int id) =>
+        {
+            await sender.Send(new DeleteOrderCommand { Id = id });
+            return Results.NoContent();
+        }).RequireAuthorization();
     }
 }

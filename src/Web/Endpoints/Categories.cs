@@ -3,49 +3,42 @@ using UnifiedPOS.Application.Categories.Commands.DeleteCategory;
 using UnifiedPOS.Application.Categories.Commands.UpdateCategory;
 using UnifiedPOS.Application.Categories.Queries.GetCategories;
 using UnifiedPOS.Application.Categories.Queries.GetCategoryById;
-using Microsoft.AspNetCore.Http.HttpResults;
 
 namespace UnifiedPOS.Web.Endpoints;
 
 public class Categories : EndpointGroupBase
 {
-    public override void Map(RouteGroupBuilder groupBuilder)
+    public override void Map(IEndpointRouteBuilder app)
     {
-        groupBuilder.MapGet(GetCategories).RequireAuthorization();
-        groupBuilder.MapGet(GetCategoryById, "{id}").RequireAuthorization();
-        groupBuilder.MapPost(CreateCategory).RequireAuthorization();
-        groupBuilder.MapPut(UpdateCategory, "{id}").RequireAuthorization();
-        groupBuilder.MapDelete(DeleteCategory, "{id}").RequireAuthorization();
-    }
+        app.MapGet("/api/Categories", async (ISender sender) =>
+        {
+            var result = await sender.Send(new GetCategoriesQuery());
+            return Results.Ok(result);
+        }).RequireAuthorization();
 
-    public async Task<Ok<List<CategoryDto>>> GetCategories(ISender sender)
-    {
-        var result = await sender.Send(new GetCategoriesQuery());
-        return TypedResults.Ok(result);
-    }
+        app.MapGet("/api/Categories/{id}", async (ISender sender, int id) =>
+        {
+            var result = await sender.Send(new GetCategoryByIdQuery(id));
+            return Results.Ok(result);
+        }).RequireAuthorization();
 
-    public async Task<Results<Ok<CategoryDetailDto>, NotFound>> GetCategoryById(ISender sender, int id)
-    {
-        var result = await sender.Send(new GetCategoryByIdQuery(id));
-        return TypedResults.Ok(result);
-    }
+        app.MapPost("/api/Categories", async (ISender sender, CreateCategoryCommand command) =>
+        {
+            var id = await sender.Send(command);
+            return Results.Created($"/api/Categories/{id}", id);
+        }).RequireAuthorization();
 
-    public async Task<Created<int>> CreateCategory(ISender sender, CreateCategoryCommand command)
-    {
-        var id = await sender.Send(command);
-        return TypedResults.Created($"/{nameof(Categories)}/{id}", id);
-    }
+        app.MapPut("/api/Categories/{id}", async (ISender sender, int id, UpdateCategoryCommand command) =>
+        {
+            if (id != command.Id) return Results.BadRequest();
+            await sender.Send(command);
+            return Results.NoContent();
+        }).RequireAuthorization();
 
-    public async Task<Results<NoContent, BadRequest>> UpdateCategory(ISender sender, int id, UpdateCategoryCommand command)
-    {
-        if (id != command.Id) return TypedResults.BadRequest();
-        await sender.Send(command);
-        return TypedResults.NoContent();
-    }
-
-    public async Task<NoContent> DeleteCategory(ISender sender, int id)
-    {
-        await sender.Send(new DeleteCategoryCommand(id));
-        return TypedResults.NoContent();
+        app.MapDelete("/api/Categories/{id}", async (ISender sender, int id) =>
+        {
+            await sender.Send(new DeleteCategoryCommand(id));
+            return Results.NoContent();
+        }).RequireAuthorization();
     }
 }

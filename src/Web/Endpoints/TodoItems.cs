@@ -4,57 +4,43 @@ using UnifiedPOS.Application.TodoItems.Commands.DeleteTodoItem;
 using UnifiedPOS.Application.TodoItems.Commands.UpdateTodoItem;
 using UnifiedPOS.Application.TodoItems.Commands.UpdateTodoItemDetail;
 using UnifiedPOS.Application.TodoItems.Queries.GetTodoItemsWithPagination;
-using Microsoft.AspNetCore.Http.HttpResults;
 
 namespace UnifiedPOS.Web.Endpoints;
 
 public class TodoItems : EndpointGroupBase
 {
-    public override void Map(RouteGroupBuilder groupBuilder)
+    public override void Map(IEndpointRouteBuilder app)
     {
-        groupBuilder.MapGet(GetTodoItemsWithPagination).RequireAuthorization();
-        groupBuilder.MapPost(CreateTodoItem).RequireAuthorization();
-        groupBuilder.MapPut(UpdateTodoItem, "{id}").RequireAuthorization();
-        groupBuilder.MapPut(UpdateTodoItemDetail, "UpdateDetail/{id}").RequireAuthorization();
-        groupBuilder.MapDelete(DeleteTodoItem, "{id}").RequireAuthorization();
-    }
+        app.MapGet("/api/TodoItems", async (ISender sender, int listId, int pageNumber, int pageSize) =>
+        {
+            var result = await sender.Send(new GetTodoItemsWithPaginationQuery { ListId = listId, PageNumber = pageNumber, PageSize = pageSize });
+            return Results.Ok(result);
+        }).RequireAuthorization();
 
-    public async Task<Ok<PaginatedList<TodoItemBriefDto>>> GetTodoItemsWithPagination(ISender sender, [AsParameters] GetTodoItemsWithPaginationQuery query)
-    {
-        var result = await sender.Send(query);
+        app.MapPost("/api/TodoItems", async (ISender sender, CreateTodoItemCommand command) =>
+        {
+            var id = await sender.Send(command);
+            return Results.Created($"/api/TodoItems/{id}", id);
+        }).RequireAuthorization();
 
-        return TypedResults.Ok(result);
-    }
+        app.MapPut("/api/TodoItems/{id}", async (ISender sender, int id, UpdateTodoItemCommand command) =>
+        {
+            if (id != command.Id) return Results.BadRequest();
+            await sender.Send(command);
+            return Results.NoContent();
+        }).RequireAuthorization();
 
-    public async Task<Created<int>> CreateTodoItem(ISender sender, CreateTodoItemCommand command)
-    {
-        var id = await sender.Send(command);
+        app.MapPut("/api/TodoItems/UpdateDetail/{id}", async (ISender sender, int id, UpdateTodoItemDetailCommand command) =>
+        {
+            if (id != command.Id) return Results.BadRequest();
+            await sender.Send(command);
+            return Results.NoContent();
+        }).RequireAuthorization();
 
-        return TypedResults.Created($"/{nameof(TodoItems)}/{id}", id);
-    }
-
-    public async Task<Results<NoContent, BadRequest>> UpdateTodoItem(ISender sender, int id, UpdateTodoItemCommand command)
-    {
-        if (id != command.Id) return TypedResults.BadRequest();
-
-        await sender.Send(command);
-
-        return TypedResults.NoContent();
-    }
-
-    public async Task<Results<NoContent, BadRequest>> UpdateTodoItemDetail(ISender sender, int id, UpdateTodoItemDetailCommand command)
-    {
-        if (id != command.Id) return TypedResults.BadRequest();
-
-        await sender.Send(command);
-
-        return TypedResults.NoContent();
-    }
-
-    public async Task<NoContent> DeleteTodoItem(ISender sender, int id)
-    {
-        await sender.Send(new DeleteTodoItemCommand(id));
-
-        return TypedResults.NoContent();
+        app.MapDelete("/api/TodoItems/{id}", async (ISender sender, int id) =>
+        {
+            await sender.Send(new DeleteTodoItemCommand(id));
+            return Results.NoContent();
+        }).RequireAuthorization();
     }
 }

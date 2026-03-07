@@ -1,76 +1,66 @@
 using UnifiedPOS.Infrastructure.Identity;
 using Microsoft.AspNetCore.Identity;
-using Microsoft.AspNetCore.Http.HttpResults;
 
 namespace UnifiedPOS.Web.Endpoints;
 
 public class Auth : EndpointGroupBase
 {
-    public override void Map(RouteGroupBuilder groupBuilder)
+    public override void Map(IEndpointRouteBuilder app)
     {
-        groupBuilder.MapPost(Login, "login");
-        groupBuilder.MapPost(Logout, "logout").RequireAuthorization();
-        groupBuilder.MapGet(Me, "me");
-    }
-
-    public async Task<Results<Ok<LoginResponse>, BadRequest<string>>> Login(
-        LoginRequest request,
-        SignInManager<ApplicationUser> signInManager,
-        UserManager<ApplicationUser> userManager)
-    {
-        var user = await userManager.FindByNameAsync(request.Email);
-        if (user == null)
+        app.MapPost("/api/Auth/login", async (
+            LoginRequest request,
+            SignInManager<ApplicationUser> signInManager,
+            UserManager<ApplicationUser> userManager) =>
         {
-            user = await userManager.FindByEmailAsync(request.Email);
-        }
-
-        if (user == null)
-        {
-            return TypedResults.BadRequest("Invalid username or password");
-        }
-
-        var result = await signInManager.PasswordSignInAsync(
-            user, 
-            request.Password, 
-            isPersistent: true, 
-            lockoutOnFailure: false);
-
-        if (result.Succeeded)
-        {
-            return TypedResults.Ok(new LoginResponse
+            var user = await userManager.FindByNameAsync(request.Email);
+            if (user == null)
             {
-                UserName = user.UserName ?? "",
-                Email = user.Email ?? "",
-                Success = true
-            });
-        }
+                user = await userManager.FindByEmailAsync(request.Email);
+            }
 
-        return TypedResults.BadRequest("Invalid username or password");
-    }
+            if (user == null)
+            {
+                return Results.BadRequest("Invalid username or password");
+            }
 
-    public async Task<Ok> Logout(SignInManager<ApplicationUser> signInManager)
-    {
-        await signInManager.SignOutAsync();
-        return TypedResults.Ok();
-    }
+            var result = await signInManager.PasswordSignInAsync(
+                user, 
+                request.Password, 
+                isPersistent: true, 
+                lockoutOnFailure: false);
 
-    public Task<Results<Ok<LoginResponse>, UnauthorizedHttpResult>> Me(HttpContext context)
-    {
-        if (context.User.Identity?.IsAuthenticated == true)
+            if (result.Succeeded)
+            {
+                return Results.Ok(new LoginResponse
+                {
+                    UserName = user.UserName ?? "",
+                    Email = user.Email ?? "",
+                    Success = true
+                });
+            }
+
+            return Results.BadRequest("Invalid username or password");
+        });
+
+        app.MapPost("/api/Auth/logout", async (SignInManager<ApplicationUser> signInManager) =>
         {
-            return Task.FromResult<Results<Ok<LoginResponse>, UnauthorizedHttpResult>>(
-                TypedResults.Ok(new LoginResponse
+            await signInManager.SignOutAsync();
+            return Results.Ok();
+        }).RequireAuthorization();
+
+        app.MapGet("/api/Auth/me", (HttpContext context) =>
+        {
+            if (context.User.Identity?.IsAuthenticated == true)
+            {
+                return Results.Ok(new LoginResponse
                 {
                     UserName = context.User.Identity.Name ?? "",
                     Email = "",
                     Success = true
-                })
-            );
-        }
-        
-        return Task.FromResult<Results<Ok<LoginResponse>, UnauthorizedHttpResult>>(
-            TypedResults.Unauthorized()
-        );
+                });
+            }
+            return Results.Unauthorized();
+        });
     }
 }
 

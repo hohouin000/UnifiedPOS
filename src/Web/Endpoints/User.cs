@@ -1,31 +1,21 @@
-using MediatR;
-using Microsoft.AspNetCore.Http.HttpResults;
-
 namespace UnifiedPOS.Web.Endpoints;
 
 public class User : EndpointGroupBase
 {
-    public override void Map(RouteGroupBuilder groupBuilder)
+    public override void Map(IEndpointRouteBuilder app)
     {
-        groupBuilder.MapGet(GetCurrentUser);
-    }
-
-    public Task<Results<Ok<UserDto>, UnauthorizedHttpResult>> GetCurrentUser(HttpContext context)
-    {
-        if (context.User.Identity?.IsAuthenticated == true)
+        app.MapGet("/api/User", (HttpContext context) =>
         {
-            return Task.FromResult<Results<Ok<UserDto>, UnauthorizedHttpResult>>(
-                TypedResults.Ok(new UserDto
+            if (context.User.Identity?.IsAuthenticated == true)
+            {
+                return Results.Ok(new UserDto
                 {
                     UserName = context.User.Identity.Name ?? "",
                     Email = context.User.FindFirst(System.Security.Claims.ClaimTypes.Email)?.Value ?? ""
-                })
-            );
-        }
-        
-        return Task.FromResult<Results<Ok<UserDto>, UnauthorizedHttpResult>>(
-            TypedResults.Unauthorized()
-        );
+                });
+            }
+            return Results.Unauthorized();
+        });
     }
 }
 

@@ -1,4 +1,5 @@
 using UnifiedPOS.Infrastructure.Data;
+using UnifiedPOS.Web.Infrastructure;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -13,10 +14,10 @@ builder.Logging.AddFile(opts =>
 });
 
 // Add services to the container.
-builder.AddKeyVaultIfConfigured();
-builder.AddApplicationServices();
-builder.AddInfrastructureServices();
-builder.AddWebServices();
+builder.Configuration.AddKeyVaultIfConfigured(builder.Configuration);
+builder.Services.AddApplicationServices();
+builder.Services.AddInfrastructureServices(builder.Configuration);
+builder.Services.AddWebServices();
 
 var app = builder.Build();
 
@@ -33,7 +34,7 @@ app.UseHealthChecks("/health");
 app.UseHttpsRedirection();
 app.UseStaticFiles();
 
-app.UseSwaggerUi(settings =>
+app.UseSwaggerUi3(settings =>
 {
     settings.Path = "/api";
     settings.DocumentPath = "/api/specification.json";
@@ -43,7 +44,7 @@ app.MapRazorPages();
 
 app.MapFallbackToFile("index.html");
 
-app.UseExceptionHandler(options => { });
+app.UseCustomExceptionHandler();
 
 
 app.MapEndpoints();

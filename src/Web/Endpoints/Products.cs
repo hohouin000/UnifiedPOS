@@ -2,43 +2,36 @@ using UnifiedPOS.Application.Products.Commands.CreateProduct;
 using UnifiedPOS.Application.Products.Commands.UpdateProduct;
 using UnifiedPOS.Application.Products.Commands.DeleteProduct;
 using UnifiedPOS.Application.Products.Queries.GetProducts;
-using Microsoft.AspNetCore.Http.HttpResults;
 
 namespace UnifiedPOS.Web.Endpoints;
 
 public class Products : EndpointGroupBase
 {
-    public override void Map(RouteGroupBuilder groupBuilder)
+    public override void Map(IEndpointRouteBuilder app)
     {
-        groupBuilder.MapGet(GetProducts).RequireAuthorization();
-        groupBuilder.MapPost(CreateProduct).RequireAuthorization();
-        groupBuilder.MapPut(UpdateProduct, "{id}").RequireAuthorization();
-        groupBuilder.MapDelete(DeleteProduct, "{id}").RequireAuthorization();
-    }
+        app.MapGet("/api/Products", async (ISender sender, int? categoryId) =>
+        {
+            var result = await sender.Send(new GetProductsQuery { CategoryId = categoryId });
+            return Results.Ok(result);
+        }).RequireAuthorization();
 
-    public async Task<Ok<List<ProductDto>>> GetProducts(ISender sender, 
-        [AsParameters] GetProductsQuery query)
-    {
-        var result = await sender.Send(query);
-        return TypedResults.Ok(result);
-    }
+        app.MapPost("/api/Products", async (ISender sender, CreateProductCommand command) =>
+        {
+            var id = await sender.Send(command);
+            return Results.Created($"/api/Products/{id}", id);
+        }).RequireAuthorization();
 
-    public async Task<Created<int>> CreateProduct(ISender sender, CreateProductCommand command)
-    {
-        var id = await sender.Send(command);
-        return TypedResults.Created($"/{nameof(Products)}/{id}", id);
-    }
+        app.MapPut("/api/Products/{id}", async (ISender sender, int id, UpdateProductCommand command) =>
+        {
+            if (id != command.Id) return Results.BadRequest();
+            await sender.Send(command);
+            return Results.NoContent();
+        }).RequireAuthorization();
 
-    public async Task<Results<NoContent, BadRequest>> UpdateProduct(ISender sender, int id, UpdateProductCommand command)
-    {
-        if (id != command.Id) return TypedResults.BadRequest();
-        await sender.Send(command);
-        return TypedResults.NoContent();
-    }
-
-    public async Task<NoContent> DeleteProduct(ISender sender, int id)
-    {
-        await sender.Send(new DeleteProductCommand(id));
-        return TypedResults.NoContent();
+        app.MapDelete("/api/Products/{id}", async (ISender sender, int id) =>
+        {
+            await sender.Send(new DeleteProductCommand(id));
+            return Results.NoContent();
+        }).RequireAuthorization();
     }
 }

@@ -9,14 +9,10 @@ namespace UnifiedPOS.Infrastructure.Data.Interceptors;
 public class AuditableEntityInterceptor : SaveChangesInterceptor
 {
     private readonly IUser _user;
-    private readonly TimeProvider _dateTime;
 
-    public AuditableEntityInterceptor(
-        IUser user,
-        TimeProvider dateTime)
+    public AuditableEntityInterceptor(IUser user)
     {
         _user = user;
-        _dateTime = dateTime;
     }
 
     public override InterceptionResult<int> SavingChanges(DbContextEventData eventData, InterceptionResult<int> result)
@@ -41,7 +37,7 @@ public class AuditableEntityInterceptor : SaveChangesInterceptor
         {
             if (entry.State is EntityState.Added or EntityState.Modified || entry.HasChangedOwnedEntities())
             {
-                var utcNow = _dateTime.GetUtcNow();
+                var utcNow = DateTimeOffset.UtcNow;
                 if (entry.State == EntityState.Added)
                 {
                     entry.Entity.CreatedBy = _user.Id;

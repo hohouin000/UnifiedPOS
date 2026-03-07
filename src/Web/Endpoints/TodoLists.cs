@@ -2,47 +2,36 @@
 using UnifiedPOS.Application.TodoLists.Commands.DeleteTodoList;
 using UnifiedPOS.Application.TodoLists.Commands.UpdateTodoList;
 using UnifiedPOS.Application.TodoLists.Queries.GetTodos;
-using Microsoft.AspNetCore.Http.HttpResults;
 
 namespace UnifiedPOS.Web.Endpoints;
 
 public class TodoLists : EndpointGroupBase
 {
-    public override void Map(RouteGroupBuilder groupBuilder)
+    public override void Map(IEndpointRouteBuilder app)
     {
-        groupBuilder.MapGet(GetTodoLists).RequireAuthorization();
-        groupBuilder.MapPost(CreateTodoList).RequireAuthorization();
-        groupBuilder.MapPut(UpdateTodoList, "{id}").RequireAuthorization();
-        groupBuilder.MapDelete(DeleteTodoList, "{id}").RequireAuthorization();
-    }
+        app.MapGet("/api/TodoLists", async (ISender sender) =>
+        {
+            var vm = await sender.Send(new GetTodosQuery());
+            return Results.Ok(vm);
+        }).RequireAuthorization();
 
-    public async Task<Ok<TodosVm>> GetTodoLists(ISender sender)
-    {
-        var vm = await sender.Send(new GetTodosQuery());
+        app.MapPost("/api/TodoLists", async (ISender sender, CreateTodoListCommand command) =>
+        {
+            var id = await sender.Send(command);
+            return Results.Created($"/api/TodoLists/{id}", id);
+        }).RequireAuthorization();
 
-        return TypedResults.Ok(vm);
-    }
+        app.MapPut("/api/TodoLists/{id}", async (ISender sender, int id, UpdateTodoListCommand command) =>
+        {
+            if (id != command.Id) return Results.BadRequest();
+            await sender.Send(command);
+            return Results.NoContent();
+        }).RequireAuthorization();
 
-    public async Task<Created<int>> CreateTodoList(ISender sender, CreateTodoListCommand command)
-    {
-        var id = await sender.Send(command);
-
-        return TypedResults.Created($"/{nameof(TodoLists)}/{id}", id);
-    }
-
-    public async Task<Results<NoContent, BadRequest>> UpdateTodoList(ISender sender, int id, UpdateTodoListCommand command)
-    {
-        if (id != command.Id) return TypedResults.BadRequest();
-
-        await sender.Send(command);
-
-        return TypedResults.NoContent();
-    }
-
-    public async Task<NoContent> DeleteTodoList(ISender sender, int id)
-    {
-        await sender.Send(new DeleteTodoListCommand(id));
-
-        return TypedResults.NoContent();
+        app.MapDelete("/api/TodoLists/{id}", async (ISender sender, int id) =>
+        {
+            await sender.Send(new DeleteTodoListCommand(id));
+            return Results.NoContent();
+        }).RequireAuthorization();
     }
 }
