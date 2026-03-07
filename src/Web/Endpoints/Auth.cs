@@ -7,7 +7,7 @@ public class Auth : EndpointGroupBase
 {
     public override void Map(IEndpointRouteBuilder app)
     {
-        app.MapPost("/api/Auth/login", async (
+        app.MapPost("/api/auth/login", async (
             LoginRequest request,
             SignInManager<ApplicationUser> signInManager,
             UserManager<ApplicationUser> userManager) =>
@@ -42,13 +42,13 @@ public class Auth : EndpointGroupBase
             return Results.BadRequest("Invalid username or password");
         });
 
-        app.MapPost("/api/Auth/logout", async (SignInManager<ApplicationUser> signInManager) =>
+        app.MapPost("/api/auth/logout", async (SignInManager<ApplicationUser> signInManager) =>
         {
             await signInManager.SignOutAsync();
             return Results.Ok();
         }).RequireAuthorization();
 
-        app.MapGet("/api/Auth/me", (HttpContext context) =>
+        app.MapGet("/api/auth/me", (HttpContext context) =>
         {
             if (context.User.Identity?.IsAuthenticated == true)
             {

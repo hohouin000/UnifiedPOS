@@ -12,7 +12,7 @@ public class Orders : EndpointGroupBase
 {
     public override void Map(IEndpointRouteBuilder app)
     {
-        app.MapGet("/api/Orders", async (ISender sender, int? status, string? searchTerm, DateTime? fromDate, DateTime? toDate) =>
+        app.MapGet("/api/orders", async (ISender sender, int? status, string? searchTerm, DateTime? fromDate, DateTime? toDate) =>
         {
             var query = new GetOrdersQuery
             {
@@ -25,39 +25,39 @@ public class Orders : EndpointGroupBase
             return Results.Ok(result);
         }).RequireAuthorization();
 
-        app.MapGet("/api/Orders/{id}", async (ISender sender, int id) =>
+        app.MapGet("/api/orders/{id}", async (ISender sender, int id) =>
         {
             var result = await sender.Send(new GetOrderByIdQuery(id));
             return Results.Ok(result);
         }).RequireAuthorization();
 
-        app.MapPost("/api/Orders", async (ISender sender, CreateOrderCommand command) =>
+        app.MapPost("/api/orders", async (ISender sender, CreateOrderCommand command) =>
         {
             var result = await sender.Send(command);
-            return Results.Created($"/api/Orders/{result.OrderId}", result);
+            return Results.Created($"/api/orders/{result.OrderId}", result);
         }).RequireAuthorization();
 
-        app.MapPut("/api/Orders/{id}/status", async (ISender sender, int id, UpdateOrderStatusCommand command) =>
+        app.MapPut("/api/orders/{id}/status", async (ISender sender, int id, UpdateOrderStatusCommand command) =>
         {
             if (id != command.Id) return Results.BadRequest();
             await sender.Send(command);
             return Results.NoContent();
         }).RequireAuthorization();
 
-        app.MapPut("/api/Orders/{id}/details", async (ISender sender, int id, UpdateOrderDetailsCommand command) =>
+        app.MapPut("/api/orders/{id}/details", async (ISender sender, int id, UpdateOrderDetailsCommand command) =>
         {
             if (id != command.Id) return Results.BadRequest();
             await sender.Send(command);
             return Results.NoContent();
         }).RequireAuthorization();
 
-        app.MapPost("/api/Orders/{id}/payments", async (ISender sender, int id, AddPaymentCommand command) =>
+        app.MapPost("/api/orders/{id}/payments", async (ISender sender, int id, AddPaymentCommand command) =>
         {
             var result = await sender.Send(command with { OrderId = id });
             return Results.Ok(result);
         }).RequireAuthorization();
 
-        app.MapDelete("/api/Orders/{id}", async (ISender sender, int id) =>
+        app.MapDelete("/api/orders/{id}", async (ISender sender, int id) =>
         {
             await sender.Send(new DeleteOrderCommand { Id = id });
             return Results.NoContent();

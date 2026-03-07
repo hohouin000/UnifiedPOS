@@ -8,7 +8,7 @@ public class Settings : EndpointGroupBase
 {
     public override void Map(IEndpointRouteBuilder app)
     {
-        app.MapGet("/api/Settings/shop", async (IApplicationDbContext context) =>
+        app.MapGet("/api/settings/shop", async (IApplicationDbContext context) =>
         {
             var settings = await context.ShopSettings.FirstOrDefaultAsync();
             
@@ -20,7 +20,7 @@ public class Settings : EndpointGroupBase
             });
         }).RequireAuthorization();
 
-        app.MapPut("/api/Settings/shop", async (IApplicationDbContext context, ShopSettingsDto dto) =>
+        app.MapPut("/api/settings/shop", async (IApplicationDbContext context, ShopSettingsDto dto) =>
         {
             var settings = await context.ShopSettings.FirstOrDefaultAsync();
             

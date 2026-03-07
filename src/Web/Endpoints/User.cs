@@ -4,7 +4,7 @@ public class User : EndpointGroupBase
 {
     public override void Map(IEndpointRouteBuilder app)
     {
-        app.MapGet("/api/User", (HttpContext context) =>
+        app.MapGet("/api/user", (HttpContext context) =>
         {
             if (context.User.Identity?.IsAuthenticated == true)
             {
